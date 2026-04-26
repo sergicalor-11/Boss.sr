@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOSS Store — Admin</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f4f4f4;color:#111;font-size:14px}
+button{font-family:inherit;cursor:pointer}
+
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#000}
+.login-box{background:#fff;padding:3rem;width:100%;max-width:360px}
+.login-logo{font-size:1.5rem;font-weight:900;letter-spacing:.3em;text-align:center;margin-bottom:2rem}
+.login-label{font-size:.62rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#888;margin-bottom:.4rem;display:block}
+.login-input{width:100%;border:1px solid #e8e8e8;padding:.7rem .8rem;font-size:.85rem;outline:none;margin-bottom:1rem;font-family:inherit}
+.login-input:focus{border-color:#000}
+.login-btn{width:100%;background:#000;color:#fff;border:none;padding:.9rem;font-size:.7rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.login-btn:hover{background:#222}
+.login-error{font-size:.72rem;color:#c00;margin-top:.5rem;text-align:center}
+
+.admin-wrap{display:none;min-height:100vh}
+.admin-nav{background:#000;color:#fff;padding:0 2rem;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.admin-logo{font-size:1rem;font-weight:900;letter-spacing:.3em}
+.admin-nav-right{display:flex;align-items:center;gap:1.5rem}
+.admin-nav-tag{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:#888}
+.logout-btn{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:#fff;background:none;border:1px solid #333;padding:.35rem .8rem;transition:border-color .2s}
+.logout-btn:hover{border-color:#fff}
+
+.admin-body{padding:2rem}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+.stat-card{background:#fff;border:1px solid #e8e8e8;padding:1.2rem 1.5rem}
+.stat-label{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:#888;margin-bottom:.4rem}
+.stat-num{font-size:1.8rem;font-weight:900}
+.stat-num.pending{color:#f59e0b}
+.stat-num.confirmed{color:#3b82f6}
+.stat-num.delivered{color:#10b981}
+.stat-num.revenue{color:#000}
+
+.orders-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.orders-title{font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.filter-tabs{display:flex;gap:.4rem}
+.tab{background:#fff;border:1px solid #e8e8e8;padding:.35rem .9rem;font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;transition:all .2s}
+.tab.on{background:#000;color:#fff;border-color:#000}
+.refresh-btn{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;background:#fff;border:1px solid #e8e8e8;padding:.35rem .8rem;transition:all .2s}
+.refresh-btn:hover{border-color:#000}
+
+.orders-table{width:100%;background:#fff;border:1px solid #e8e8e8;border-collapse:collapse}
+.orders-table th{background:#f9f9f9;font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:#888;padding:.75rem 1rem;text-align:left;border-bottom:1px solid #e8e8e8;font-weight:600}
+.orders-table td{padding:.9rem 1rem;border-bottom:1px solid #f0f0f0;font-size:.78rem;vertical-align:top}
+.orders-table tr:last-child td{border-bottom:none}
+.orders-table tr:hover td{background:#fafafa}
+
+.order-ref{font-weight:700;font-size:.75rem;letter-spacing:.05em}
+.order-date{font-size:.68rem;color:#888;margin-top:.2rem}
+.customer-name{font-weight:600}
+.customer-phone{font-size:.68rem;color:#888;margin-top:.1rem}
+.customer-addr{font-size:.68rem;color:#888;margin-top:.1rem;max-width:160px}
+.items-list{font-size:.72rem;line-height:1.6}
+.item-line{display:flex;gap:.3rem}
+.pay-badge{display:inline-block;padding:.2rem .6rem;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.pay-card{background:#e0f2fe;color:#0369a1}
+.pay-cod{background:#fef3c7;color:#92400e}
+.bank-name{font-size:.65rem;color:#888;margin-top:.2rem}
+.total-amt{font-weight:700;font-size:.9rem}
+.delivery-fee{font-size:.65rem;color:#888}
+
+.status-select{border:1px solid #e8e8e8;padding:.3rem .5rem;font-size:.68rem;font-family:inherit;background:#fff;cursor:pointer;outline:none}
+.status-select.pending{border-color:#f59e0b;color:#92400e;background:#fef3c7}
+.status-select.confirmed{border-color:#3b82f6;color:#1d4ed8;background:#eff6ff}
+.status-select.delivered{border-color:#10b981;color:#065f46;background:#ecfdf5}
+.status-select.cancelled{border-color:#ef4444;color:#991b1b;background:#fef2f2}
+
+.empty-orders{text-align:center;padding:4rem;color:#888;font-size:.82rem}
+.loading{text-align:center;padding:3rem;color:#888;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">BOSS</div>
+    <span class="login-label">Admin Password</span>
+    <input class="login-input" type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Access Admin Panel</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="admin-wrap" id="admin-wrap">
+  <div class="admin-nav">
+    <div class="admin-logo">BOSS</div>
+    <div class="admin-nav-right">
+      <div class="admin-nav-tag">Order Management</div>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="admin-body">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-num" id="stat-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending</div>
+        <div class="stat-num pending" id="stat-pending">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Confirmed</div>
+        <div class="stat-num confirmed" id="stat-confirmed">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-num revenue" id="stat-revenue">—</div>
+      </div>
+    </div>
+
+    <div class="orders-header">
+      <div class="orders-title">Orders</div>
+      <div style="display:flex;gap:.75rem;align-items:center">
+        <div class="filter-tabs">
+          <button class="tab on" onclick="filterOrders('all',this)">All</button>
+          <button class="tab" onclick="filterOrders('pending',this)">Pending</button>
+          <button class="tab" onclick="filterOrders('confirmed',this)">Confirmed</button>
+          <button class="tab" onclick="filterOrders('delivered',this)">Delivered</button>
+        </div>
+        <button class="refresh-btn" onclick="loadOrders()">Refresh</button>
+      </div>
+    </div>
+
+    <table class="orders-table">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>Payment</th>
+          <th>Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="orders-tbody">
+        <tr><td colspan="6" class="loading">Loading orders...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://avjsdfpvxnxjocfzefab.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2anNkZnB2eG54am9jZnplZmFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMTA5ODksImV4cCI6MjA5Mjc4Njk4OX0.NdFD9v_8B-21PCzIU-GyXtEcTgBuXuUZrfx7lhE5lQA';
+const ADMIN_PASSWORD = 'boss2026';
+
+let allOrders = [];
+let currentFilter = 'all';
+
+function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === ADMIN_PASSWORD) {
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('admin-wrap').style.display = 'block';
+    loadOrders();
+  } else {
+    document.getElementById('login-error').textContent = 'Incorrect password';
+  }
+}
+
+function doLogout() {
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('admin-wrap').style.display = 'none';
+  document.getElementById('pw-input').value = '';
+}
+
+async function loadOrders() {
+  document.getElementById('orders-tbody').innerHTML = '<tr><td colspan="6" class="loading">Loading orders...</td></tr>';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders?order=created_at.desc`, {
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`}
+    });
+    allOrders = await res.json();
+    updateStats();
+    renderOrders();
+  } catch(e) {
+    document.getElementById('orders-tbody').innerHTML = '<tr><td colspan="6" class="empty-orders">Error loading orders. Check your connection.</td></tr>';
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = allOrders.length;
+  document.getElementById('stat-pending').textContent = allOrders.filter(o=>o.status==='pending').length;
+  document.getElementById('stat-confirmed').textContent = allOrders.filter(o=>o.status==='confirmed').length;
+  const revenue = allOrders.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+(o.total||0),0);
+  document.getElementById('stat-revenue').textContent = 'SRD ' + revenue.toLocaleString();
+}
+
+function filterOrders(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  renderOrders();
+}
+
+function renderOrders() {
+  const filtered = currentFilter === 'all' ? allOrders : allOrders.filter(o=>o.status===currentFilter);
+  if (!filtered.length) {
+    document.getElementById('orders-tbody').innerHTML = `<tr><td colspan="6" class="empty-orders">No ${currentFilter === 'all' ? '' : currentFilter} orders yet.</td></tr>`;
+    return;
+  }
+  document.getElementById('orders-tbody').innerHTML = filtered.map(o => {
+    const date = new Date(o.created_at);
+    const dateStr = date.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+    const timeStr = date.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+    const items = Array.isArray(o.items) ? o.items : (o.items ? JSON.parse(o.items) : []);
+    const itemsHtml = items.map(i=>`<div class="item-line"><span>${i.qty}x</span><span>${i.name} (${i.size}) — SRD ${i.price}</span></div>`).join('');
+    const payBadge = o.payment_method === 'cod'
+      ? `<span class="pay-badge pay-cod">Cash on Delivery</span>`
+      : `<span class="pay-badge pay-card">Card</span><div class="bank-name">${o.bank||''}</div>`;
+    return `
+      <tr>
+        <td>
+          <div class="order-ref">#${o.id.substring(0,8).toUpperCase()}</div>
+          <div class="order-date">${dateStr} · ${timeStr}</div>
+        </td>
+        <td>
+          <div class="customer-name">${o.customer_name||'—'}</div>
+          <div class="customer-phone">${o.phone||'—'}</div>
+          <div class="customer-addr">${o.address||'—'}</div>
+        </td>
+        <td><div class="items-list">${itemsHtml||'—'}</div></td>
+        <td>${payBadge}</td>
+        <td>
+          <div class="total-amt">SRD ${o.total||0}</div>
+          <div class="delivery-fee">Delivery: ${o.delivery===0?'Free':'SRD '+(o.delivery||0)}</div>
+        </td>
+        <td>
+          <select class="status-select ${o.status}" onchange="updateStatus('${o.id}',this)">
+            <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
+            <option value="confirmed" ${o.status==='confirmed'?'selected':''}>Confirmed</option>
+            <option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option>
+            <option value="cancelled" ${o.status==='cancelled'?'selected':''}>Cancelled</option>
+          </select>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function updateStatus(id, select) {
+  const newStatus = select.value;
+  select.className = 'status-select ' + newStatus;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({status: newStatus})
+    });
+    const order = allOrders.find(o=>o.id===id);
+    if (order) order.status = newStatus;
+    updateStats();
+  } catch(e) {
+    alert('Failed to update status. Try again.');
+  }
+}
+</script>
+</body>
+</html>
